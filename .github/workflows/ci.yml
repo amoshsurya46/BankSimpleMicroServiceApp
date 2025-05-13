@@ -1,0 +1,60 @@
+# GitHub Actions CI workflow for Banking App
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: banking_user
+          POSTGRES_PASSWORD: banking_pass
+          POSTGRES_DB: banking_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://banking_user:banking_pass@localhost:5432/banking_db
+      JWT_SECRET: your_jwt_secret
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install backend dependencies
+        run: |
+          pip install -r backend/auth-service/requirements.txt
+          pip install -r backend/account-service/requirements.txt
+          pip install -r backend/transaction-service/requirements.txt
+      - name: Install frontend dependencies
+        run: |
+          cd frontend/react-app
+          npm install
+      - name: Run backend tests
+        run: |
+          pytest backend/auth-service/tests
+          pytest backend/account-service/tests
+          pytest backend/transaction-service/tests
+      - name: Run frontend tests
+        run: |
+          cd frontend/react-app
+          npm test -- --watchAll=false
+      - name: Build Docker images
+        run: |
+          docker-compose -f banking-app/docker-compose.yml build

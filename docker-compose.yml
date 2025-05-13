@@ -1,0 +1,68 @@
+# Docker Compose configuration for Banking App microservices
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: banking_user
+      POSTGRES_PASSWORD: banking_pass
+      POSTGRES_DB: banking_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  auth-service:
+    build: ./backend/auth-service
+    ports:
+      - '5001:5001'
+    environment:
+      - DATABASE_URL=postgresql://banking_user:banking_pass@postgres:5432/banking_db
+      - JWT_SECRET=your_jwt_secret
+    depends_on:
+      - postgres
+    networks:
+      - backend
+
+  account-service:
+    build: ./backend/account-service
+    ports:
+      - '5002:5002'
+    environment:
+      - DATABASE_URL=postgresql://banking_user:banking_pass@postgres:5432/banking_db
+    depends_on:
+      - postgres
+    networks:
+      - backend
+
+  transaction-service:
+    build: ./backend/transaction-service
+    ports:
+      - '5003:5003'
+    environment:
+      - DATABASE_URL=postgresql://banking_user:banking_pass@postgres:5432/banking_db
+    depends_on:
+      - postgres
+    networks:
+      - backend
+
+  frontend:
+    build: ./frontend/react-app
+    ports:
+      - '3000:3000'
+    environment:
+      - REACT_APP_API_URL=http://localhost
+    depends_on:
+      - auth-service
+      - account-service
+      - transaction-service
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+    driver: bridge
