@@ -1,7 +1,7 @@
 # Dockerfile for React Frontend
-FROM node:18-alpine
+FROM node:20.11.1-alpine
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY package.json ./
 RUN npm install
 COPY . .
 EXPOSE 3000
